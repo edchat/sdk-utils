@@ -104,6 +104,26 @@ module.exports = function (grunt) {
 				include: grunt.file.expand(expandFiles, delitefulPatterns).map(trimExt),
 				exclude: ["decor/layer", "dpointer/layer", "ecma402/layer", "delite/layer", "dstore/Memory", "dstore/Trackable"]
 			}, {
+				name: "deliteful-StarRating-build/layer",
+				include: ["deliteful/StarRating",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				]
+			}, {
+				name: "deliteful-Combobox-build/layer",
+				include: ["deliteful/Combobox",
+					"deliteful/Store",
+					"deliteful/ProgressIndicator",
+					"requirejs-text/text",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				]
+			}, {
+				name: "deliteful-Checkbox-build/layer",
+				include: ["deliteful/Checkbox",
+					"requirejs-domready/domReady",
+					"requirejs-text/text",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				]
+			}, {
 				name: "dtreemap/layer",
 				includeFiles: ["dtreemap/**/*.js"],
 				excludeFiles: ["dtreemap/tests/**", "dtreemap/demos/**", "dtreemap/docs/**", "dtreemap/Gruntfile.js"]
@@ -177,7 +197,9 @@ module.exports = function (grunt) {
 	// The main build task.
 	grunt.registerTask("amdbuild", function (amdloader) {
 		function useAmdDepsScan(name) {
-			var layerToGetDeps = ["delite/layer", "decor/layer", "deliteful/layer", "ecma402/layer"];
+			var layerToGetDeps = ["delite/layer", "decor/layer", "deliteful/layer",
+				"deliteful-StarRating-build/layer", "deliteful-Combobox-build/layer", "deliteful-Checkbox-build/layer",
+				"ecma402/layer"];
 			return layerToGetDeps.indexOf(name) >= 0;
 		}
 
