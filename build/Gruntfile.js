@@ -104,26 +104,6 @@ module.exports = function (grunt) {
 				include: grunt.file.expand(expandFiles, delitefulPatterns).map(trimExt),
 				exclude: ["decor/layer", "dpointer/layer", "ecma402/layer", "delite/layer", "dstore/Memory", "dstore/Trackable"]
 			}, {
-				name: "deliteful-StarRating-build/layer",
-				include: ["deliteful/StarRating",
-					"delite/theme!delite/themes/{{theme}}/global.css"
-				]
-			}, {
-				name: "deliteful-Combobox-build/layer",
-				include: ["deliteful/Combobox",
-					"deliteful/Store",
-					"deliteful/ProgressIndicator",
-					"requirejs-text/text",
-					"delite/theme!delite/themes/{{theme}}/global.css"
-				]
-			}, {
-				name: "deliteful-Checkbox-build/layer",
-				include: ["deliteful/Checkbox",
-					"requirejs-domready/domReady",
-					"requirejs-text/text",
-					"delite/theme!delite/themes/{{theme}}/global.css"
-				]
-			}, {
 				name: "dtreemap/layer",
 				includeFiles: ["dtreemap/**/*.js"],
 				excludeFiles: ["dtreemap/tests/**", "dtreemap/demos/**", "dtreemap/docs/**", "dtreemap/Gruntfile.js"]
@@ -139,6 +119,57 @@ module.exports = function (grunt) {
 				name: "liaison/delite/layer",
 				includeFiles: ["liaison/delite/**/*.js"],
 				excludeFiles: ["liaison/delite/widgets/StarRating.js"]
+			}]
+		},
+
+		widgetbuild: {
+			buildPlugin: true,
+
+			// dir is the output directory.
+			dir: tmpdir,
+
+			// List of layers to build.
+			layers: [{
+				name: "delite-fullBuild/fullBuild",
+				include: grunt.file.expand(expandFiles, delitePatterns).map(trimExt)
+					.concat(["delite/theme!delite/themes/{{theme}}/global.css"])//,
+			//		.concat(["delite-fullBuild/theme!delite-fullBuild/themes/{{theme}}/global.css"])//,
+			//	exclude: ["decor/layer", "dpointer/layer", "ecma402/layer"]
+			}, {
+				name: "deliteful-StarRating-build/layer",
+				include: ["deliteful/StarRating",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				//	"delite-fullBuild/theme!delite-fullBuild/themes/{{theme}}/global.css"
+				],
+				exclude: ["delite-fullBuild/fullBuild"]
+			}, {
+				name: "deliteful-Combobox-build/layer",
+				include: ["deliteful/Combobox",
+					"deliteful/Store",
+					"deliteful/ProgressIndicator",
+					"requirejs-text/text",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				//	"delite-fullBuild/theme!delite-fullBuild/themes/{{theme}}/global.css"
+				],
+				exclude: ["delite-fullBuild/fullBuild"]
+			}, {
+				name: "deliteful-Checkbox-build/layer",
+				include: ["deliteful/Checkbox",
+					"requirejs-domready/domReady",
+					"requirejs-text/text",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				//	"delite-fullBuild/theme!delite-fullBuild/themes/{{theme}}/global.css"
+				],
+				exclude: ["delite-fullBuild/fullBuild"]
+			}, {
+				name: "deliteful-RadioButton-build/layer",
+				include: ["deliteful/RadioButton",
+					"requirejs-domready/domReady",
+					"requirejs-text/text",
+					"delite/theme!delite/themes/{{theme}}/global.css"
+				//	"delite-fullBuild/theme!delite-fullBuild/themes/{{theme}}/global.css"
+				],
+				exclude: ["delite-fullBuild/fullBuild"]
 			}]
 		},
 
@@ -164,7 +195,7 @@ module.exports = function (grunt) {
 			}
 		},
 
-		// Config to allow uglify to generate the layer.
+		// Config to allow uglify to generate the layer. Change all uglify to concat to test concat
 		uglify: {
 			options: {
 				banner: "<%= " + outprop + ".header%>",
@@ -197,8 +228,8 @@ module.exports = function (grunt) {
 	// The main build task.
 	grunt.registerTask("amdbuild", function (amdloader) {
 		function useAmdDepsScan(name) {
-			var layerToGetDeps = ["delite/layer", "decor/layer", "deliteful/layer",
-				"deliteful-StarRating-build/layer", "deliteful-Combobox-build/layer", "deliteful-Checkbox-build/layer",
+			var layerToGetDeps = ["delite/layer",
+				"decor/layer", "deliteful/layer",
 				"ecma402/layer"];
 			return layerToGetDeps.indexOf(name) >= 0;
 		}
@@ -232,6 +263,50 @@ module.exports = function (grunt) {
 
 	});
 
+
+	// The main build task.
+	grunt.registerTask("widgetbuild", function (amdloader) {
+		function useAmdDepsScan(name) {
+			var layerToGetDeps = [
+				"delite-fullBuild/fullBuild",
+				"deliteful-StarRating-build/layer",
+				"deliteful-Combobox-build/layer",
+				"deliteful-Checkbox-build/layer",
+				"deliteful-RadioButton-build/layer"];
+			return layerToGetDeps.indexOf(name) >= 0;
+		}
+
+
+		// Create tasks list
+		var tasksList = [];
+		var name = this.name;
+		var layers = grunt.config(name).layers;
+
+		layers.forEach(function (layer) {
+			if (useAmdDepsScan(layer.name)) {
+				tasksList.push("amddepsscan:" + layer.name + ":" + name + ":" + amdloader);
+			} else {
+				tasksList.push("amddirscan:" + layer.name + ":" + name + ":" + amdloader);
+			}
+			tasksList.push("amdserialize:" + layer.name + ":" + name + ":" + outprop);
+		//	tasksList.push("concat");
+			tasksList.push("uglify");
+			tasksList.push("correctSourceMap:" + layer.name + ":" + name + ":" + outdir);
+			// Remove references to useless html template before copying plugins files.
+			tasksList.push("filterPluginFiles:\\.(html|json)\\.js$:" + outprop);
+			tasksList.push("copy:plugins");
+		});
+
+		//tasksList.push("updateBowers:" + name + ":" + outdir);
+		//tasksList.push("addBoot:" + name + ":" + outdir);
+		//tasksList.push("copyMetaFiles:" + name + ":" + outdir);
+		tasksList.push("updateSamples:" + name + ":" + outdir);
+		tasksList.push("copyBuildResults:" + name + ":" + outdir);
+
+		grunt.task.run(tasksList);
+
+	});
+
 	// Load the plugin that provides the "amd" task.
 	grunt.loadNpmTasks("grunt-amd-build");
 	grunt.loadTasks("./tasks/");
@@ -243,4 +318,8 @@ module.exports = function (grunt) {
 
 	// Default task.
 	grunt.registerTask("default", ["clean:erase", "amdbuild:amdloader", "amdreportjson:amdbuild", "clean:finish"]);
+
+	// widgetOnlyBuild task.
+	// no clean:erase on widgetOnlyBuild to avoid deleting the ambbuild output
+	grunt.registerTask("widgetOnlyBuild", ["widgetbuild:amdloader", "amdreportjson:widgetbuild", "clean:finish"]);
 };
